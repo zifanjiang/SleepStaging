@@ -1,6 +1,7 @@
 % Generating RSA, EDR, CPC from ECG record
 clear;
-load('Record.mat');
+load('Record_label.mat');
+Record = Record_label;
 fs = 250; %sampling frequency
 num_p = length(Record); %number of patients
 for p = 1:num_p
@@ -18,7 +19,7 @@ for p = 1:num_p
     rs_edr = resample(EDR,t_edr,4,'linear');
     rs_rsa = resample(RSA,tRSA,4,'linear');
     % generate CPC
-    num_image = floor((length(EDR)-1200)/120)+1;
+    num_image = floor((length(rs_edr)-1200)/120)+1;
     cpc = zeros(num_image,50,18);
     for i = 1:num_image
         for j = 1:18
@@ -30,4 +31,4 @@ for p = 1:num_p
     end
     Record(p).cpc = cpc;
 end
-save("new_Record",'Record');
+save("Record_label_cpc",'Record');
