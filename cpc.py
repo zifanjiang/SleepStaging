@@ -5,7 +5,6 @@ import torch.utils.data as data
 from sklearn.model_selection import train_test_split
 from PIL import Image
 
-
 class cpc(data.Dataset):
     def __init__(self, rdata, split='train', transform=None):
         self.transform = transform
