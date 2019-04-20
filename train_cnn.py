@@ -18,14 +18,14 @@ from sklearn.metrics import accuracy_score, cohen_kappa_score
 
 rdata = loadmat('data/slpdb_cnn_dataset.mat')
 
-test_flg = True
+test_flg = False
 bs = 512
 total_epoch = 50
 learning_rate = 0.01
 best_val_acc = 0
 best_val_acc_epoch = 0
-# net = LiNet()
-net = VGG('VGG11')
+net = LiNet()
+# net = VGG('VGG11')
 print(torch.cuda.get_device_name(0))
 print('==> Preparing data..')
 
@@ -127,7 +127,7 @@ def testing():
     print('kappa: ' + str(kappa))
     return val_acc, kappa
 
-folds = 1
+folds = 10
 for fold in range(folds):
     trainset = cpc(rdata, split='train', fold=fold, transform=transform_train)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=bs, shuffle=True, num_workers=1)
@@ -157,6 +157,9 @@ for fold in range(folds):
         for epoch in range(total_epoch):
             train(epoch)
             validate(epoch)
+            acc_list[fold], kappa_list[fold] = testing()
+            print("mean acc:" , np.mean(acc_list))
+            print("mean kappa", np.mean(kappa_list))
 
-    print("best_val_acc: %0.3f" % best_val_acc)
-    print("best_val_acc_epoch: %d" % best_val_acc_epoch)
+    # print("best_val_acc: %0.3f" % best_val_acc)
+    # print("best_val_acc_epoch: %d" % best_val_acc_epoch)
