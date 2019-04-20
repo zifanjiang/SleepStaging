@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+import torchvision
 import torchvision.transforms as transforms
 import time
 import numpy as np
@@ -16,9 +17,9 @@ from cpc import cpc
 
 rdata = loadmat('data/slpdb_cnn_dataset.mat')
 
-test_flg = True
-bs = 128
-total_epoch = 100
+test_flg = False
+bs = 512
+total_epoch = 50
 learning_rate = 0.01
 best_val_acc = 0  
 best_val_acc_epoch = 0
@@ -30,23 +31,6 @@ transform_train = transforms.Compose([
         transforms.ToTensor(),])
 transform_test = transforms.Compose([
         transforms.ToTensor()])
-
-trainset = cpc(rdata, split='train',transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=bs, shuffle=True, num_workers=1)
-val_set = cpc(rdata, split='val',transform=transform_test)
-valloader = torch.utils.data.DataLoader(val_set, batch_size=bs, shuffle=False, num_workers=1)
-test_set = cpc(rdata, split='test', transform=transform_test)
-testloader = torch.utils.data.DataLoader(test_set, batch_size=bs, shuffle=False, num_workers=1)
-
-net = LiNet()
-net.cuda()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
-data_length = len(trainset)
-
-if test_flg:
-    checkpoint = torch.load('slpstaging.v1')
-    net.load_state_dict(checkpoint['net'])
 
 def train(epoch):
     epoch_start = time.time()
@@ -134,12 +118,32 @@ def testing():
     val_acc = 100. * correct / total
     print('testing ACC: ' + str(val_acc))
 
-if test_flg:
-    testing()
-else:
-    for epoch in range(total_epoch):
-        train(epoch)
-        validate(epoch)
+for fold in range(1):
+    trainset = cpc(rdata, split='train', fold=fold, transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=bs, shuffle=True, num_workers=1)
+    val_set = cpc(rdata, split='val', fold=fold, transform=transform_test)
+    valloader = torch.utils.data.DataLoader(val_set, batch_size=bs, shuffle=False, num_workers=1)
+    test_set = cpc(rdata, split='test', fold=fold, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(test_set, batch_size=bs, shuffle=False, num_workers=1)
 
-print("best_val_acc: %0.3f" % best_val_acc)
-print("best_val_acc_epoch: %d" % best_val_acc_epoch)
+    # net = LiNet()
+    net = VGG('VGG11')
+    net.classifier = nn.Linear(512, 4)
+    net.cuda()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+    data_length = len(trainset)
+
+    if test_flg:
+        checkpoint = torch.load('slpstaging.v1')
+        net.load_state_dict(checkpoint['net'])
+        
+    if test_flg:
+        testing()
+    else:
+        for epoch in range(total_epoch):
+            train(epoch)
+            validate(epoch)
+
+    print("best_val_acc: %0.3f" % best_val_acc)
+    print("best_val_acc_epoch: %d" % best_val_acc_epoch)
