@@ -18,12 +18,14 @@ from sklearn.metrics import accuracy_score, cohen_kappa_score
 
 rdata = loadmat('data/slpdb_cnn_dataset.mat')
 
-test_flg = False
+test_flg = True
 bs = 512
 total_epoch = 50
 learning_rate = 0.01
 best_val_acc = 0
 best_val_acc_epoch = 0
+# net = LiNet()
+net = VGG('VGG11')
 print(torch.cuda.get_device_name(0))
 print('==> Preparing data..')
 
@@ -118,7 +120,7 @@ def testing():
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum().item()
-        kappa = cohen_kappa_score(np.array(targets.data), np.array(predicted))
+        kappa = cohen_kappa_score(np.array(targets.data.cpu()), np.array(predicted.cpu()))
 
     val_acc = 100. * correct / total
     print('testing ACC: ' + str(val_acc))
@@ -136,8 +138,7 @@ for fold in range(folds):
     acc_list = np.zeros([folds, 1])
     kappa_list = np.zeros([folds, 1])
 
-    # net = LiNet()
-    net = VGG('VGG11')
+
     net.classifier = nn.Linear(512, 4)
     net.cuda()
     criterion = nn.CrossEntropyLoss()
@@ -150,6 +151,8 @@ for fold in range(folds):
 
     if test_flg:
         acc_list[fold], kappa_list[fold] = testing()
+        print("mean acc:" , np.mean(acc_list))
+        print("mean kappa", np.mean(kappa_list))
     else:
         for epoch in range(total_epoch):
             train(epoch)
